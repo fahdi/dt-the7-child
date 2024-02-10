@@ -25,10 +25,7 @@ Extensively tested in a staging environment. Ensure to conduct your tests to con
 For detailed operational guidance and troubleshooting, refer to the included documentation within the plugin folder.
 
 ## Support
-For support and further inquiries, contact [Your Contact Information].
-
-## License
-The Dynamic Membership Assigner plugin is licensed under [License Name].
+For support and further inquiries, contact info@fahdmurtaza.com.
 
 ## Acknowledgements
 Thanks to the WordPress community and Paid Memberships Pro team for their support and resources.
