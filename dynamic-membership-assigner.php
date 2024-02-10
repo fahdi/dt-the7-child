@@ -1,12 +1,86 @@
 <?php
 /**
  * Plugin Name: Dynamic Membership Assignment for WP All Import and PMP
- * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro.
+ * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro. Adds an admin page for bulk processing membership assignments.
  * Version: 1.0
  * Author: Your Name
  */
 
-add_action( 'wp_insert_post', 'assign_memberships_to_lead_post', 30, 3 );
+// Register activation hook to setup initial transient for tracking.
+register_activation_hook( __FILE__, 'dma_setup_initial_transient' );
+function dma_setup_initial_transient() {
+	set_transient( 'dma_last_processed_id', 0, 0 ); // Never expires.
+}
+
+// Add admin menu page for manual processing.
+add_action( 'admin_menu', 'dma_add_admin_menu' );
+function dma_add_admin_menu() {
+	add_menu_page( 'Membership Assignment', 'Membership Assignment', 'manage_options', 'dma-membership-assignment', 'dma_membership_assignment_page' );
+}
+
+function dma_membership_assignment_page() {
+	echo '<h1>Membership Assignment</h1>';
+	echo '<p><button id="start-assignment">Start Assignment</button></p>';
+	// Include JS to handle button click and AJAX request. JS code will be provided in dma-admin.js.
+	// give front end udpats to what is happening
+	echo '<div id="dma-assignment-status"></div>';
+
+
+}
+
+// AJAX handler for starting the assignment process.
+add_action( 'wp_ajax_dma_start_assignment', 'dma_start_assignment_ajax' );
+function dma_start_assignment_ajax() {
+	dma_process_assignments();
+	wp_die(); // Terminate AJAX request.
+}
+
+// Batch process assignment.
+function dma_process_assignments() {
+	$last_processed_id = get_transient( 'dma_last_processed_id' );
+	$args              = [
+		'post_type'      => 'lead',
+		'posts_per_page' => -1, // Process 500 posts at a time.
+		'post_status'    => 'publish',
+		'orderby'        => 'ID',
+		'order'          => 'ASC',
+		/*'meta_query'     => [
+			[
+				'key'     => 'dma_last_updated',
+				'value'   => time() - ( 5 * HOUR_IN_SECONDS ), // Posts updated in the last 5 hours.
+				'compare' => '<',
+				'type'    => 'NUMERIC',
+			],
+		],
+		'date_query'     => [
+			'after' => '2 days ago', // Optionally limit by date.
+		],*/
+	];
+
+	$query = new WP_Query( $args );
+	if ( $query->have_posts() ) {
+		while ( $query->have_posts() ) {
+			$query->the_post();
+			$post_id = get_the_ID();
+			assign_memberships_to_lead_post( $post_id, get_post( $post_id ), false );
+			set_transient( 'dma_last_processed_id', $post_id, 0 ); // Update transient to track the last processed ID.
+			update_post_meta( $post_id, 'dma_last_updated', time() ); // Mark the time of the last update.
+		}
+	}
+
+	return $query->post_count . " posts processed.";
+
+}
+
+// Enqueue script for AJAX on admin page.
+add_action( 'admin_enqueue_scripts', 'dma_enqueue_scripts' );
+function dma_enqueue_scripts( $hook ) {
+	if ( 'toplevel_page_dma-membership-assignment' !== $hook ) {
+		return;
+	}
+	wp_enqueue_script( 'dma-admin-js', plugin_dir_url( __FILE__ ) . 'js/dma-admin.js', [ 'jquery' ], null, true );
+	wp_localize_script( 'dma-admin-js', 'dmaAjax', [ 'ajax_url' => admin_url( 'admin-ajax.php' ) ] );
+}
 
 function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 	// Ensure we are dealing with the 'lead' post type
@@ -21,7 +95,7 @@ function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 		// Assuming 'disaster-type' is the taxonomy you want to check
 		$disaster_types_terms = wp_get_post_terms( $post_id, 'disaster-type', [ 'fields' => 'names' ] );
 
-		error_log( "Error or no disaster types found for lead post ID " . print_r($disaster_types_terms, true) );
+		error_log( "Error or no disaster types found for lead post ID " . print_r( $disaster_types_terms, true ) );
 		if ( ! is_wp_error( $disaster_types_terms ) && ! empty( $disaster_types_terms ) ) {
 			$membership_levels = determine_membership_levels( $state, $disaster_types_terms );
 			foreach ( $membership_levels as $level_id ) {
@@ -86,55 +160,4 @@ function assign_me() {
 // add_filter( 'wp_all_import_shard_delay', 'add_delay', 10, 1 );
 function add_delay( $sleep ) {
 	return 500000;
-}
-
-// Add the admin menu page
-function dma_add_admin_menu() {
-	add_menu_page(
-		'Assign Memberships', // Page title
-		'Assign Memberships', // Menu title
-		'manage_options', // Capability
-		'dma_assign_memberships', // Menu slug
-		'dma_assign_memberships_page' // Function to display the page
-	);
-}
-add_action('admin_menu', 'dma_add_admin_menu');
-
-// Display the admin page content
-function dma_assign_memberships_page() {
-	?>
-	<div class="wrap">
-		<h2>Assign Memberships to Leads</h2>
-		<form method="post" action="">
-			<?php submit_button('Assign Memberships'); ?>
-		</form>
-	</div>
-	<?php
-
-	// Check if the form is submitted
-	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		dma_process_membership_assignment();
-	}
-}
-
-// Function to process membership assignment
-function dma_process_membership_assignment() {
-	$args = array(
-		'post_type' => 'lead', // Adjust the post type if necessary
-		'posts_per_page' => -1, // Process all posts
-	);
-
-	$query = new WP_Query($args);
-
-	if ($query->have_posts()) {
-		while ($query->have_posts()) {
-			$query->the_post();
-			$post_id = get_the_ID();
-			assign_memberships_to_lead_post($post_id, get_post($post_id), false);
-		}
-		wp_reset_postdata();
-	}
-
-	// Optionally, add some notification about completion
-	echo '<div class="updated"><p>Membership assignment process completed.</p></div>';
 }
