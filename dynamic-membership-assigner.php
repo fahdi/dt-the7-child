@@ -12,14 +12,6 @@
  * Domain Path: /languages
  * Requires at least: 5.2
  * Requires PHP: 7.0
- * GitHub Plugin URI: https://github.com/fahdi/dynamic-membership-assigner
- * GitHub Branch: master
- * GitHub Languages: PHP, JavaScript
- * GitHub Requires WP: 5.2
- * GitHub Requires PHP: 7.0
- * GitHub License: GPL-2.0
- * GitHub License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * GitHub Contributors: fahdi
  */
 
 // Register activation hook to setup initial transient for tracking.
@@ -157,23 +149,4 @@ function assign_membership_to_post( $post_id, $level_ids ) {
 		] );
 	}
 	error_log( 'Assigned levels successfully to post ID: ' . $post_id );
-}
-
-// add_action( 'wp_loaded', 'myStartSession', 1 );
-function myStartSession() {
-	echo "<pre>";
-	print_r( wp_get_post_terms( 940, 'disaster-type', array( 'fields' => 'names' ) ) );
-	echo "</pre>";
-}
-
-// TODO: Delete this debug code later. Change the post ID when testing on a different post.
-// add_action( 'wp_loaded', 'assign_me', 1 );
-function assign_me() {
-	assign_memberships_to_lead_post( 941, get_post( 941 ), false );
-}
-
-// Add sharding delay if needed
-// add_filter( 'wp_all_import_shard_delay', 'add_delay', 10, 1 );
-function add_delay( $sleep ) {
-	return 500000;
 }
