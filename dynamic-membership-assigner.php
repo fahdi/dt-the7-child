@@ -76,7 +76,7 @@ function myStartSession() {
 	echo "</pre>";
 }
 
-// TODO: Delete this debug code later
+// TODO: Delete this debug code later. Change the post ID when testing on a different post.
 // add_action( 'wp_loaded', 'assign_me', 1 );
 function assign_me() {
 	assign_memberships_to_lead_post( 941, get_post( 941 ), false );
@@ -86,4 +86,55 @@ function assign_me() {
 // add_filter( 'wp_all_import_shard_delay', 'add_delay', 10, 1 );
 function add_delay( $sleep ) {
 	return 500000;
+}
+
+// Add the admin menu page
+function dma_add_admin_menu() {
+	add_menu_page(
+		'Assign Memberships', // Page title
+		'Assign Memberships', // Menu title
+		'manage_options', // Capability
+		'dma_assign_memberships', // Menu slug
+		'dma_assign_memberships_page' // Function to display the page
+	);
+}
+add_action('admin_menu', 'dma_add_admin_menu');
+
+// Display the admin page content
+function dma_assign_memberships_page() {
+	?>
+	<div class="wrap">
+		<h2>Assign Memberships to Leads</h2>
+		<form method="post" action="">
+			<?php submit_button('Assign Memberships'); ?>
+		</form>
+	</div>
+	<?php
+
+	// Check if the form is submitted
+	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		dma_process_membership_assignment();
+	}
+}
+
+// Function to process membership assignment
+function dma_process_membership_assignment() {
+	$args = array(
+		'post_type' => 'lead', // Adjust the post type if necessary
+		'posts_per_page' => -1, // Process all posts
+	);
+
+	$query = new WP_Query($args);
+
+	if ($query->have_posts()) {
+		while ($query->have_posts()) {
+			$query->the_post();
+			$post_id = get_the_ID();
+			assign_memberships_to_lead_post($post_id, get_post($post_id), false);
+		}
+		wp_reset_postdata();
+	}
+
+	// Optionally, add some notification about completion
+	echo '<div class="updated"><p>Membership assignment process completed.</p></div>';
 }
