@@ -12,18 +12,33 @@
  * This plugin is designed to automate the assignment of membership levels in WordPress, leveraging data from CSV imports.
  */
 
-// exit if file is called directly
+/**
+ * Prevents direct access to the plugin file.
+ *
+ * Checks if ABSPATH is defined to ensure the file is being called through WordPress. If not, the script execution is halted.
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Adds the plugin's admin page to the WordPress dashboard menu.
+ *
+ * Registers a new menu page under the admin menu, providing site administrators with a manual membership assignment interface.
+ */
 // Add admin menu page for manual processing.
 add_action( 'admin_menu', 'dma_add_admin_menu' );
-function dma_add_admin_menu() {
+function dma_add_admin_menu(): void {
 	add_menu_page( 'Membership Assignment', 'Membership Assignment', 'manage_options', 'dma-membership-assignment', 'dma_membership_assignment_page' );
 }
 
-function dma_membership_assignment_page() {
+/**
+ * Renders the plugin's admin page.
+ *
+ * Displays the admin page for manual membership assignment, including a button to initiate the assignment process.
+ */
+function dma_membership_assignment_page(): void {
 	echo '<h1>Membership Assignment</h1>';
 	echo '<p><button id="start-assignment">Start Assignment</button></p>';
 	// Include JS to handle button click and AJAX request. JS code will be provided in dma-admin.js.
@@ -34,13 +49,21 @@ function dma_membership_assignment_page() {
 
 // AJAX handler for starting the assignment process.
 add_action( 'wp_ajax_dma_start_assignment', 'dma_start_assignment_ajax' );
-function dma_start_assignment_ajax() {
+
+/**
+ * Handles AJAX requests for starting the membership assignment process.
+ *
+ * Initiates the process of assigning membership levels to posts when the 'Start Assignment' button is clicked on the admin page.
+ *
+ * @return void
+ */
+function dma_start_assignment_ajax(): void {
 	dma_process_assignments();
 	wp_die(); // Terminate AJAX request.
 }
 
 // Batch process assignment.
-function dma_process_assignments() {
+function dma_process_assignments(): string {
 	$args = [
 		'post_type'      => 'lead',
 		'posts_per_page' => - 1, // Process 500 posts at a time.
@@ -65,7 +88,7 @@ function dma_process_assignments() {
 
 // Enqueue script for AJAX on admin page.
 add_action( 'admin_enqueue_scripts', 'dma_enqueue_scripts' );
-function dma_enqueue_scripts( $hook ) {
+function dma_enqueue_scripts( $hook ): void {
 	if ( 'toplevel_page_dma-membership-assignment' !== $hook ) {
 		return;
 	}
@@ -73,7 +96,16 @@ function dma_enqueue_scripts( $hook ) {
 	wp_localize_script( 'dma-admin-js', 'dmaAjax', [ 'ajax_url' => admin_url( 'admin-ajax.php' ) ] );
 }
 
-function assign_memberships_to_lead_post( $post_id, $post, $update ) {
+/**
+ * Assigns membership levels to individual posts.
+ *
+ * Processes each post to assign appropriate membership levels based on the specified criteria from imported CSV data.
+ *
+ * @param int $post_id The ID of the post being processed.
+ * @param WP_Post $post The post object.
+ * @param bool $update Specifies if the operation is an update.
+ */
+function assign_memberships_to_lead_post( int $post_id, WP_Post $post, bool $update ): void {
 
 	// Check if the lead has already been processed
 	$already_processed = get_post_meta( $post_id, 'dma_processed', true );
@@ -119,7 +151,17 @@ function get_nationwide_all_access_level_id() {
 	return null; // Return null if not found
 }
 
-function determine_membership_levels( $state, $disaster_types ) {
+/**
+ * Determines the membership levels applicable to a post based on disaster types.
+ *
+ * Matches the post's disaster type(s) against available membership levels, ensuring case-insensitive and partial matches are considered.
+ *
+ * @param string $state The state associated with the post.
+ * @param array $disaster_types An array of disaster types associated with the post.
+ *
+ * @return array An array of applicable membership level IDs.
+ */
+function determine_membership_levels( string $state, array $disaster_types ): array {
 	error_log( 'Determining levels for state: ' . $state . ' with types: ' . implode( ', ', $disaster_types ) );
 	$all_levels = pmpro_getAllLevels( true, true ); // Fetch all membership levels
 	$levels     = [];
@@ -149,12 +191,16 @@ function determine_membership_levels( $state, $disaster_types ) {
 	return array_unique( $levels );
 }
 
-function assign_membership_to_post( $post_id, $level_ids ): void {
+/**
+ * Updates the membership level assignments for a post in the database.
+ *
+ * Inserts or updates membership level associations for a given post, ensuring it has access to the specified levels.
+ *
+ * @param int $post_id The ID of the post to assign memberships to.
+ * @param array $level_ids An array of membership level IDs to assign to the post.
+ */
+function assign_membership_to_post( int $post_id, array $level_ids ): void {
 	global $wpdb;
-
-	if ( ! is_array( $level_ids ) ) {
-		$level_ids = [ $level_ids ];
-	}
 
 	$wpdb->delete( "{$wpdb->prefix}pmpro_memberships_pages", [ 'page_id' => $post_id ] );
 
