@@ -1,17 +1,15 @@
 <?php
 /**
  * Plugin Name: Dynamic Membership Assignment for WP All Import and PMP
- * Plugin URI: https://www.fahadmurtaza.com
  * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro. Adds an admin page for bulk processing membership assignments.
- * Version: 1.2
+ * Version: 1.3
  * Author: Fahad Murtaza
  * Author URI: https://www.fahadmurtaza.com
  * License: GPL2
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: dynamic-membership-assigner
  * Domain Path: /languages
- * Requires at least: 5.2
- * Requires PHP: 7.0
+ *
+ * This plugin is designed to automate the assignment of membership levels in WordPress, leveraging data from CSV imports.
  */
 
 // exit if file is called directly
