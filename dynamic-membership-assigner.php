@@ -14,10 +14,9 @@
  * Requires PHP: 7.0
  */
 
-// Register activation hook to setup initial transient for tracking.
-register_activation_hook( __FILE__, 'dma_setup_initial_transient' );
-function dma_setup_initial_transient() {
-	set_transient( 'dma_last_processed_id', 0, 0 ); // Never expires.
+// exit if file is called directly
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 // Add admin menu page for manual processing.
@@ -111,10 +110,27 @@ function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 	update_post_meta( $post_id, 'dma_processed', 'yes' );
 }
 
+function get_nationwide_all_access_level_id() {
+	$all_levels = pmpro_getAllLevels( true, true );
+	foreach ( $all_levels as $level ) {
+		if ( strtolower( $level->name ) === 'nationwide all-access' ) {
+			return $level->id; // Found the ID of 'Nationwide All-Access'
+		}
+	}
+
+	return null; // Return null if not found
+}
+
 function determine_membership_levels( $state, $disaster_types ) {
 	error_log( 'Determining levels for state: ' . $state . ' with types: ' . implode( ', ', $disaster_types ) );
 	$all_levels = pmpro_getAllLevels( true, true ); // Fetch all membership levels
 	$levels     = [];
+
+	// Always include 'Nationwide All-Access' membership level ID
+	$nationwide_all_access_id = get_nationwide_all_access_level_id();
+	if ( $nationwide_all_access_id !== null ) {
+		$levels[] = $nationwide_all_access_id;
+	}
 
 	// Convert disaster types to lowercase for case-insensitive comparison
 	$disaster_types = array_map( 'strtolower', $disaster_types );
