@@ -77,6 +77,15 @@ function dma_enqueue_scripts( $hook ) {
 }
 
 function assign_memberships_to_lead_post( $post_id, $post, $update ) {
+
+	// Check if the lead has already been processed
+	$already_processed = get_post_meta( $post_id, 'dma_processed', true );
+	if ( 'yes' === $already_processed ) {
+		error_log( 'Lead post ID: ' . $post_id . ' has already been processed.' );
+
+		return; // Stop processing this lead
+	}
+
 	// Ensure we are dealing with the 'lead' post type
 	if ( 'lead' === $post->post_type && ! $update ) {
 		// Check for an import flag or other indication this is a newly imported lead
@@ -98,6 +107,8 @@ function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 			error_log( "Error or no disaster types found for lead post ID $post_id" );
 		}
 	}
+
+	update_post_meta( $post_id, 'dma_processed', 'yes' );
 }
 
 function determine_membership_levels( $state, $disaster_types ) {
