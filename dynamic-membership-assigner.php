@@ -33,7 +33,6 @@ function dma_membership_assignment_page() {
 	// give front end udpats to what is happening
 	echo '<div id="dma-assignment-status"></div>';
 
-
 }
 
 // AJAX handler for starting the assignment process.
@@ -45,24 +44,13 @@ function dma_start_assignment_ajax() {
 
 // Batch process assignment.
 function dma_process_assignments() {
-	$last_processed_id = get_transient( 'dma_last_processed_id' );
-	$args              = [
+	$args = [
 		'post_type'      => 'lead',
 		'posts_per_page' => - 1, // Process 500 posts at a time.
 		'post_status'    => 'publish',
 		'orderby'        => 'ID',
 		'order'          => 'ASC',
-		/*'meta_query'     => [
-			[
-				'key'     => 'dma_last_updated',
-				'value'   => time() - ( 5 * HOUR_IN_SECONDS ), // Posts updated in the last 5 hours.
-				'compare' => '<',
-				'type'    => 'NUMERIC',
-			],
-		],
-		'date_query'     => [
-			'after' => '2 days ago', // Optionally limit by date.
-		],*/
+
 	];
 
 	$query = new WP_Query( $args );
@@ -71,8 +59,6 @@ function dma_process_assignments() {
 			$query->the_post();
 			$post_id = get_the_ID();
 			assign_memberships_to_lead_post( $post_id, get_post( $post_id ), false );
-			set_transient( 'dma_last_processed_id', $post_id, 0 ); // Update transient to track the last processed ID.
-			update_post_meta( $post_id, 'dma_last_updated', time() ); // Mark the time of the last update.
 		}
 	}
 
@@ -103,12 +89,10 @@ function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 		// Assuming 'disaster-type' is the taxonomy you want to check
 		$disaster_types_terms = wp_get_post_terms( $post_id, 'disaster-type', [ 'fields' => 'names' ] );
 
-		error_log( "Error or no disaster types found for lead post ID " . print_r( $disaster_types_terms, true ) );
+		error_log( "Disaster types found for lead post ID: " . print_r( $disaster_types_terms, true ) );
 		if ( ! is_wp_error( $disaster_types_terms ) && ! empty( $disaster_types_terms ) ) {
 			$membership_levels = determine_membership_levels( $state, $disaster_types_terms );
-			foreach ( $membership_levels as $level_id ) {
-				assign_membership_to_post( $post_id, $level_id );
-			}
+			assign_membership_to_post( $post_id, $membership_levels );
 			error_log( 'Completed membership assignment for lead post ID: ' . $post_id );
 		} else {
 			error_log( "Error or no disaster types found for lead post ID $post_id" );
@@ -116,24 +100,31 @@ function assign_memberships_to_lead_post( $post_id, $post, $update ) {
 	}
 }
 
-function determine_membership_levels( $state, $damage_types ) {
-	error_log( 'Determining levels for state: ' . $state . ' with types: ' . implode( ', ', $damage_types ) );
+function determine_membership_levels( $state, $disaster_types ) {
+	error_log( 'Determining levels for state: ' . $state . ' with types: ' . implode( ', ', $disaster_types ) );
 	$all_levels = pmpro_getAllLevels( true, true ); // Fetch all membership levels
 	$levels     = [];
 
+	// Convert disaster types to lowercase for case-insensitive comparison
+	$disaster_types = array_map( 'strtolower', $disaster_types );
+
 	foreach ( $all_levels as $level ) {
-		foreach ( $damage_types as $type ) {
-			$name_to_check = $state . " " . ucfirst( $type ) . " Leads Membership";
-			if ( stripos( $level->name, $name_to_check ) !== false ) {
+		// Check each level name against each disaster type for a partial match
+		foreach ( $disaster_types as $type ) {
+			$name_to_check = strtolower( ucfirst( $type ) );
+			if ( stripos( strtolower( $level->name ), $name_to_check ) !== false && stripos( strtolower( $level->name ), $state ) !== false ) {
+				error_log( 'Name matched: ' . $name_to_check . ', and state matched: ' . $state . ', with level name: ' . strtolower( $level->name ) );
 				$levels[] = $level->id;
 			}
 		}
 	}
 
+	error_log( 'Levels determined: ' . implode( ', ', array_unique( $levels ) ) );
+
 	return array_unique( $levels );
 }
 
-function assign_membership_to_post( $post_id, $level_ids ) {
+function assign_membership_to_post( $post_id, $level_ids ): void {
 	global $wpdb;
 
 	if ( ! is_array( $level_ids ) ) {
@@ -148,5 +139,5 @@ function assign_membership_to_post( $post_id, $level_ids ) {
 			'membership_id' => $level_id
 		] );
 	}
-	error_log( 'Assigned levels successfully to post ID: ' . $post_id );
+	error_log( 'Assigned levels ' . implode( ',', $level_ids ) . ' successfully to post ID: ' . $post_id );
 }
