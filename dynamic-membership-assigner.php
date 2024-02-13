@@ -58,13 +58,15 @@ add_action( 'wp_ajax_dma_start_assignment', 'dma_start_assignment_ajax' );
  * @return void
  */
 function dma_start_assignment_ajax(): void {
-	wp_send_json_success('Processing... Do not refresh or close your browser...');
 	dma_process_assignments();
 	wp_die(); // Terminate AJAX request.
 }
 
 // Batch process assignment.
-function dma_process_assignments(): string {
+/**
+ * @return void
+ */
+function dma_process_assignments(): void {
 	$args = [
 		'post_type'      => 'lead',
 		'posts_per_page' => - 1, // Process 500 posts at a time.
@@ -83,8 +85,7 @@ function dma_process_assignments(): string {
 		}
 	}
 
-	return $query->post_count . " posts processed.";
-
+	wp_send_json_success($query->post_count . " posts processed.");
 }
 
 // Enqueue script for AJAX on admin page.

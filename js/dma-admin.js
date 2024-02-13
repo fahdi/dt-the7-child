@@ -7,6 +7,8 @@ jQuery(document).ready(function($) {
     $button.prop('disabled', true);
     $status.html('Initiating process...');
 
+    $status.html('Processing... Do not refresh or close your browser...');
+
     $.ajax({
       url: dmaAjax.ajax_url,
       type: 'POST',
