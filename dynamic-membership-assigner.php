@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Dynamic Membership Assignment for WP All Import and PMP
  * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro. Adds an admin page for bulk processing membership assignments.
- * Version: 1.8
+ * Version: 1.9
  * Author: Fahad Murtaza
  * Author URI: https://www.fahadmurtaza.com
  * License: GPL2
@@ -69,23 +69,36 @@ function dma_start_assignment_ajax(): void {
 function dma_process_assignments(): void {
 	$args = [
 		'post_type'      => 'lead',
-		'posts_per_page' => - 1, // Process 500 posts at a time.
+		'posts_per_page' => - 1, // Process all posts at a time.
 		'post_status'    => 'publish',
 		'orderby'        => 'ID',
 		'order'          => 'ASC',
-
+		'meta_query'     => [
+			[
+				'key'     => 'dma_processed',
+				'compare' => 'NOT EXISTS' // Only select posts that haven't been marked as processed
+			]
+		],
 	];
 
-	$query = new WP_Query( $args );
+	$query           = new WP_Query( $args );
+	$processed_count = 0; // Track the number of posts processed
+
 	if ( $query->have_posts() ) {
 		while ( $query->have_posts() ) {
 			$query->the_post();
 			$post_id = get_the_ID();
+
+			// Process the post for membership assignment
 			assign_memberships_to_lead_post( $post_id, get_post( $post_id ), false );
+			// Mark the post as processed
+			update_post_meta( $post_id, 'dma_processed', 'yes' );
+			$processed_count ++;
 		}
 	}
 
-	wp_send_json_success($query->post_count . " posts processed.");
+	// Send a success message with the count of posts processed
+	wp_send_json_success( "$processed_count posts processed." );
 }
 
 // Enqueue script for AJAX on admin page.
@@ -109,17 +122,8 @@ function dma_enqueue_scripts( $hook ): void {
  */
 function assign_memberships_to_lead_post( int $post_id, WP_Post $post, bool $update ): void {
 
-	// Check if the lead has already been processed
-	$already_processed = get_post_meta( $post_id, 'dma_processed', true );
-	if ( 'yes' === $already_processed ) {
-		error_log( 'Lead post ID: ' . $post_id . ' has already been processed.' );
-
-		return; // Stop processing this lead
-	}
-
 	// Ensure we are dealing with the 'lead' post type
 	if ( 'lead' === $post->post_type && ! $update ) {
-		// Check for an import flag or other indication this is a newly imported lead
 
 		error_log( 'Starting membership assignment for lead post ID: ' . $post_id );
 
@@ -170,7 +174,7 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 
 	// Always include 'Nationwide All-Access' membership level ID
 	$nationwide_all_access_id = get_nationwide_all_access_level_id();
-	if ($nationwide_all_access_id !== null) {
+	if ( $nationwide_all_access_id !== null ) {
 		$levels[] = $nationwide_all_access_id;
 	}
 
