@@ -166,21 +166,16 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 	$all_levels = pmpro_getAllLevels( true, true ); // Fetch all membership levels
 	$levels     = [];
 
-	// Always include 'Nationwide All-Access' membership level ID
-	$nationwide_all_access_id = get_nationwide_all_access_level_id();
-	if ( $nationwide_all_access_id !== null ) {
-		$levels[] = $nationwide_all_access_id;
-	}
-
-	// Convert disaster types to lowercase for case-insensitive comparison
-	$disaster_types = array_map( 'strtolower', $disaster_types );
+	// Normalize criteria for comparison
+	$normalizedState         = strtolower( $state );
+	$normalizedDisasterTypes = array_map( 'strtolower', $disaster_types );
 
 	foreach ( $all_levels as $level ) {
-		// Check each level name against each disaster type for a partial match
-		foreach ( $disaster_types as $type ) {
-			$name_to_check = strtolower( ucfirst( $type ) );
-			if ( stripos( strtolower( $level->name ), $name_to_check ) !== false && stripos( strtolower( $level->name ), $state ) !== false ) {
-				error_log( 'Name matched: ' . $name_to_check . ', and state matched: ' . $state . ', with level name: ' . strtolower( $level->name ) );
+		$levelNameLower = strtolower( $level->name );
+		foreach ( $normalizedDisasterTypes as $type ) {
+			// Check for state and disaster type match in membership level name
+			if ( strpos( $levelNameLower, $normalizedState ) !== false && strpos( $levelNameLower, $type ) !== false ) {
+				error_log( 'Disaster matched: ' . $type . ', and state matched: ' . $normalizedState . ', with level name: ' . $levelNameLower );
 				$levels[] = $level->id;
 			}
 		}
