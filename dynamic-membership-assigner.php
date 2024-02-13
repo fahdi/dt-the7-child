@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Dynamic Membership Assignment for WP All Import and PMP
  * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro. Adds an admin page for bulk processing membership assignments.
- * Version: 2.0
+ * Version: 2.1
  * Author: Fahad Murtaza
  * Author URI: https://www.fahadmurtaza.com
  * License: GPL2
@@ -128,7 +128,7 @@ function assign_memberships_to_lead_post( int $post_id, WP_Post $post, bool $upd
 		error_log( 'Starting membership assignment for lead post ID: ' . $post_id );
 
 		// Fetch state directly from ACF fields
-		$state = get_field( 'state', $post_id );
+		$state = get_field( 'property_state', $post_id );
 
 		// Assuming 'disaster-type' is the taxonomy you want to check
 		$disaster_types_terms = wp_get_post_terms( $post_id, 'disaster-type', [ 'fields' => 'names' ] );
