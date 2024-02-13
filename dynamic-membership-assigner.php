@@ -168,8 +168,7 @@ function get_nationwide_all_access_level_id() {
  * @return array An array of applicable membership level IDs.
  */
 function determine_membership_levels( string $state, array $disaster_types ): array {
-	error_log( 'Determining levels for state: ' . $state . ' with types: ' . implode( ', ', $disaster_types ) );
-	$all_levels = pmpro_getAllLevels( true, true ); // Fetch all membership levels
+	$all_levels = pmpro_getAllLevels( true, true );
 	$levels     = [];
 
 	// Always include 'Nationwide All-Access' membership level ID
@@ -184,19 +183,18 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 
 	foreach ( $all_levels as $level ) {
 		$levelNameLower = strtolower( $level->name );
+		$levelState     = strtok( $levelNameLower, " " ); // Get the first word of the level name
+
 		foreach ( $normalizedDisasterTypes as $type ) {
-			// Check for state and disaster type match in membership level name
-			if ( strpos( $levelNameLower, $normalizedState ) !== false && strpos( $levelNameLower, $type ) !== false ) {
-				error_log( 'Disaster matched: ' . $type . ', and state matched: ' . $normalizedState . ', with level name: ' . $levelNameLower );
+			if ( $levelState == $normalizedState && strpos( $levelNameLower, $type ) !== false ) {
 				$levels[] = $level->id;
 			}
 		}
 	}
 
-	error_log( 'Levels determined: ' . implode( ', ', array_unique( $levels ) ) );
-
 	return array_unique( $levels );
 }
+
 
 /**
  * Updates the membership level assignments for a post in the database.
