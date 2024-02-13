@@ -1,6 +1,11 @@
 jQuery(document).ready(function($) {
   $('#start-assignment').click(function() {
-    $('#dma-assignment-status').html('Initiating process...'); // Initial message
+    var $button = $(this); // Cache the button
+    var $status = $('#dma-assignment-status'); // Cache the status div
+
+    // Disable the button and update the status message
+    $button.prop('disabled', true);
+    $status.html('Initiating process...');
 
     $.ajax({
       url: dmaAjax.ajax_url,
@@ -10,19 +15,22 @@ jQuery(document).ready(function($) {
       },
       success: function(response) {
         if (response.success) {
-          // Update the UI with the processing message received from the server
-          $('#dma-assignment-status').html(response.data);
-
-          // Optionally, if you have a way to check the progress or completion, update the message accordingly
-          // This part requires additional implementation on how to handle long-running processes
+          // Update the UI with the message received from the server
+          $status.html(response.data);
         } else {
           // Handle failure
-          $('#dma-assignment-status').html('Failed to start the process.');
+          $status.html('Failed to start the process.');
         }
+
+        // Re-enable the button after processing
+        $button.prop('disabled', false);
       },
       error: function(errorThrown) {
         console.log('Error:', errorThrown);
-        $('#dma-assignment-status').html('Error during assignment processing: ' + errorThrown);
+        $status.html('Error during assignment processing: ' + errorThrown);
+
+        // Re-enable the button after error
+        $button.prop('disabled', false);
       }
     });
   });
