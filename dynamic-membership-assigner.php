@@ -186,7 +186,7 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 		$levelState     = strtok( $levelNameLower, " " ); // Get the first word of the level name
 
 		foreach ( $normalizedDisasterTypes as $type ) {
-			if ( $levelState == $normalizedState && strpos( $levelNameLower, $type ) !== false ) {
+			if ( $levelState == $normalizedState && str_contains( $levelNameLower, $type ) ) {
 				$levels[] = $level->id;
 			}
 		}
@@ -194,7 +194,6 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 
 	return array_unique( $levels );
 }
-
 
 /**
  * Updates the membership level assignments for a post in the database.
