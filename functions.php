@@ -71,3 +71,28 @@ function number_of_leads_last_month() {
 }
 
 add_shortcode('leads-last-month', 'number_of_leads_last_month');
+
+function format_phone_number_value( $value, $post_id, $field ) {
+	// Check if the value is not empty and is a phone number
+	if ( !empty($value) && is_numeric($value) && strlen($value) == 10 ) {
+		// Format the phone number
+		$formatted_value = sprintf("(%s) %s-%s",
+			substr($value, 0, 3),
+			substr($value, 3, 3),
+			substr($value, 6, 4)
+		);
+
+		// Return the formatted phone number
+		return $formatted_value;
+	}
+
+	// Return the original value if conditions are not met
+	return $value;
+}
+
+// Apply the filter for each phone field
+add_filter('acf/format_value/name=phone', 'format_phone_number_value', 10, 3);
+add_filter('acf/format_value/name=phone_2', 'format_phone_number_value', 10, 3);
+add_filter('acf/format_value/name=phone_3', 'format_phone_number_value', 10, 3);
+add_filter('acf/format_value/name=phone_4', 'format_phone_number_value', 10, 3);
+add_filter('acf/format_value/name=phone_5', 'format_phone_number_value', 10, 3);
