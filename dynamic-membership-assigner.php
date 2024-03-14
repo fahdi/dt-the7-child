@@ -133,6 +133,13 @@ function assign_memberships_to_lead_post( int $post_id, WP_Post $post, bool $upd
 		// Assuming 'disaster-type' is the taxonomy you want to check
 		$disaster_types_terms = wp_get_post_terms( $post_id, 'disaster-type', [ 'fields' => 'names' ] );
 
+		// Always include 'Nationwide All-Access' membership level ID
+		$nationwide_all_access_id = get_nationwide_all_access_level_id();
+		if ( $nationwide_all_access_id !== null ) {
+			$membership_levels[] = $nationwide_all_access_id;
+			assign_membership_to_post( $post_id, $membership_levels );
+		}
+
 		error_log( "Disaster types found for lead post ID: " . print_r( $disaster_types_terms, true ) );
 		if ( ! is_wp_error( $disaster_types_terms ) && ! empty( $disaster_types_terms ) ) {
 			$membership_levels = determine_membership_levels( $state, $disaster_types_terms );
@@ -171,11 +178,11 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 	$all_levels = pmpro_getAllLevels( true, true );
 	$levels     = [];
 
-	// Always include 'Nationwide All-Access' membership level ID
-	$nationwide_all_access_id = get_nationwide_all_access_level_id();
-	if ( $nationwide_all_access_id !== null ) {
-		$levels[] = $nationwide_all_access_id;
-	}
+//	// Always include 'Nationwide All-Access' membership level ID
+//	$nationwide_all_access_id = get_nationwide_all_access_level_id();
+//	if ( $nationwide_all_access_id !== null ) {
+//		$levels[] = $nationwide_all_access_id;
+//	}
 
 	// Normalize criteria for comparison
 	$normalizedState         = strtolower( $state );
