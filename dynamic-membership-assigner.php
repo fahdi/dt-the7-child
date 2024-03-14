@@ -216,7 +216,7 @@ function determine_membership_levels( string $state, array $disaster_types ): ar
 function assign_membership_to_post( int $post_id, array $level_ids ): void {
 	global $wpdb;
 
-	$wpdb->delete( "{$wpdb->prefix}pmpro_memberships_pages", [ 'page_id' => $post_id ] );
+	// $wpdb->delete( "{$wpdb->prefix}pmpro_memberships_pages", [ 'page_id' => $post_id ] );
 
 	foreach ( $level_ids as $level_id ) {
 		$wpdb->insert( "{$wpdb->prefix}pmpro_memberships_pages", [
