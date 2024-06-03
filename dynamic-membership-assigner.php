@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Dynamic Membership Assignment for WP All Import and PMP
  * Description: Dynamically assigns membership levels to posts based on imported CSV data, integrating with WP All Import and Paid Memberships Pro. Adds an admin page for bulk processing membership assignments.
- * Version: 2.3.0
+ * Version: 2.4.0
  * Author: Fahad Murtaza
  * Author URI: https://www.fahadmurtaza.com
  * License: GPL2
@@ -31,6 +31,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'admin_menu', 'dma_add_admin_menu' );
 function dma_add_admin_menu(): void {
 	add_menu_page( 'Membership Assignment', 'Membership Assignment', 'manage_options', 'dma-membership-assignment', 'dma_membership_assignment_page' );
+	add_submenu_page(
+		'dma-membership-assignment',
+		'Leads Without Membership',
+		'Leads Without Membership',
+		'manage_options',
+		'dma-leads-without-membership',
+		'dma_leads_without_membership_page'
+	);
 }
 
 /**
@@ -225,4 +233,49 @@ function assign_membership_to_post( int $post_id, array $level_ids ): void {
 		] );
 	}
 	error_log( 'Assigned levels ' . implode( ',', $level_ids ) . ' successfully to post ID: ' . $post_id );
+}
+
+/**
+ * Renders the admin page for leads without membership.
+ */
+function dma_leads_without_membership_page(): void {
+	global $wpdb;
+
+	// Query to get leads (posts of type 'lead') without membership
+	$results = $wpdb->get_results( "
+        SELECT p.ID, p.post_title
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->prefix}pmpro_memberships_pages pm ON p.ID = pm.page_id
+        WHERE p.post_type = 'lead' AND pm.membership_id IS NULL
+    " );
+
+	echo '<div class="wrap">';
+	echo '<h1>Leads Without Membership</h1>';
+
+	if ( ! empty( $results ) ) {
+		echo '<table class="widefat fixed" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th class="manage-column column-columnname" scope="col">ID</th>
+                        <th class="manage-column column-columnname" scope="col">Title</th>
+                        <th class="manage-column column-columnname" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+		foreach ( $results as $lead ) {
+			$edit_link = get_edit_post_link( $lead->ID );
+			echo '<tr>
+                    <td>' . esc_html( $lead->ID ) . '</td>
+                    <td>' . esc_html( $lead->post_title ) . '</td>
+                    <td><a href="' . esc_url( $edit_link ) . '">Edit</a></td>
+                  </tr>';
+		}
+
+		echo '</tbody></table>';
+	} else {
+		echo '<p>All leads have memberships assigned.</p>';
+	}
+
+	echo '</div>';
 }
